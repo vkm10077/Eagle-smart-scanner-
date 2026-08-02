@@ -1206,40 +1206,36 @@ def start_scan_thread(
     force_refresh: bool = False,
 ) -> bool:
     with scan_lock:
-        if scan_state.get(
-            "running"
-        ):
+        if scan_state.get("running"):
             return False
-
-        scan_state[
-            "running"
-        ] = True
 
     scan_thread = threading.Thread(
         target=run_background_scan,
         kwargs={
-            "timeframe": (
-                timeframe
-            ),
-            "force_refresh": (
-                force_refresh
-            ),
+            "timeframe": timeframe,
+            "force_refresh": force_refresh,
         },
         daemon=True,
-        name=(
-            "eagle-background-scanner"
-        ),
+        name="eagle-background-scanner",
     )
 
     try:
         scan_thread.start()
         return True
 
-    except Exception:
-        update_scan_state(
-            running=False
+    except Exception as exception:
+        logger.exception(
+            "Unable to start background scanner thread: %s",
+            str(exception),
         )
-        raise
+
+        update_scan_state(
+            running=False,
+            last_error=str(exception),
+            completed_at=utc_now().isoformat(),
+        )
+
+        return False
 
 
 # ==========================================================
