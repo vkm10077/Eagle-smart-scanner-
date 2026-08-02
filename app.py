@@ -1771,67 +1771,65 @@ def api_stock_detail(
             )
 
     try:
-        benchmark_candles = (
-            fetch_index_history(
-                access_token,
-                NIFTY_BENCHMARK_SYMBOL,
-                timeframe,
-            )
-        )
+        benchmark_candles = None
+        sector_candles = None
 
-        sector_group = get_sector_group(
-            stock.industry
+    try:
+        benchmark_candles = fetch_index_history(
+            access_token,
+            NIFTY_BENCHMARK_SYMBOL,
+            timeframe,
         )
-
-        sector_symbol = (
-            SECTOR_INDEX_SYMBOLS.get(
-                sector_group,
-                NIFTY_BENCHMARK_SYMBOL,
-            )
-        )
-
-        sector_candles = (
-            fetch_index_history(
-                access_token,
-                sector_symbol,
-                timeframe,
-            )
-        )
-
-        result = (
-            research_engine
-            .research_stock(
-                access_token=access_token,
+    except Exception as benchmark_exception:
+        logger.warning(
+            "Benchmark history unavailable for stock detail: %s",
+            str(benchmark_exception),
+            extra=build_log_extra(
+                component="app",
                 symbol=normalized_symbol,
                 timeframe=timeframe,
-                benchmark_candles=(
-                    benchmark_candles
-                ),
-                sector_candles=(
-                    sector_candles
-                ),
-                force_refresh=(
-                    force_refresh
-                ),
-                include_no_trade=True,
-            )
-        )
-
-        cache_service.set(
-            cache_key,
-            result,
-            ttl_seconds=(
-                SCAN_RESULTS_CACHE_SECONDS
+                event="stock_detail_benchmark_failed",
+                status="warning",
             ),
         )
 
-        return jsonify(
-            {
-                "success": True,
-                "stock": result,
-                "cached": False,
-            }
-        )
+    if benchmark_candles:
+        sector_candles = benchmark_candles
+
+            result = (
+                research_engine
+                .research_stock(
+                    access_token=access_token,
+                    symbol=normalized_symbol,
+                    timeframe=timeframe,
+                    benchmark_candles=(
+                        benchmark_candles
+                    ),
+                    sector_candles=(
+                        sector_candles
+                    ),
+                    force_refresh=(
+                        force_refresh
+                    ),
+                    include_no_trade=True,
+                )
+            )
+
+            cache_service.set(
+                cache_key,
+                result,
+                ttl_seconds=(
+                    SCAN_RESULTS_CACHE_SECONDS
+                ),
+            )
+
+            return jsonify(
+                {
+                    "success": True,
+                    "stock": result,
+                    "cached": False,
+                }
+            )
 
     except Exception as exception:
         return jsonify(
