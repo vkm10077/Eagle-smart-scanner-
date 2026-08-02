@@ -209,22 +209,20 @@ SCAN_STATUS_CACHE_KEY = (
 # ==========================================================
 
 SECTOR_INDEX_SYMBOLS: dict[str, str] = {
-    "Banking and Finance": (
-        "NSE:NIFTYFINSERVICE-INDEX"
-    ),
-    "Technology": "NSE:NIFTYIT-INDEX",
-    "Consumer": "NSE:NIFTYFMCG-INDEX",
-    "Industrials": "NSE:NIFTYINFRA-INDEX",
-    "Energy": "NSE:NIFTYENERGY-INDEX",
-    "Healthcare": "NSE:NIFTYPHARMA-INDEX",
-    "Materials": "NSE:NIFTYMETAL-INDEX",
-    "Automobile": "NSE:NIFTYAUTO-INDEX",
-    "Communication": "NSE:NIFTYMEDIA-INDEX",
-    "Real Estate": "NSE:NIFTYREALTY-INDEX",
-    "Other": "NSE:NIFTY50-INDEX",
+    "Banking and Finance": "NSE:BANKBEES-EQ",
+    "Technology": "NSE:ITBEES-EQ",
+    "Consumer": "NSE:CONSUMBEES-EQ",
+    "Industrials": "NSE:NIFTYBEES-EQ",
+    "Energy": "NSE:PSUBNKBEES-EQ",
+    "Healthcare": "NSE:PHARMABEES-EQ",
+    "Materials": "NSE:METALBEES-EQ",
+    "Automobile": "NSE:AUTOBEES-EQ",
+    "Communication": "NSE:NIFTYBEES-EQ",
+    "Real Estate": "NSE:NIFTYBEES-EQ",
+    "Other": "NSE:NIFTYBEES-EQ",
 }
 
-NIFTY_BENCHMARK_SYMBOL = "NSE:NIFTY50-INDEX"
+NIFTY_BENCHMARK_SYMBOL = "NSE:NIFTYBEES-EQ"
 
 
 # ==========================================================
