@@ -1923,6 +1923,66 @@ def api_sectors() -> Any:
             "total": len(sectors),
         }
     )
+@app.route("/api/test/history")
+@login_required
+def api_test_history() -> Any:
+    access_token = get_access_token()
+
+    today = utc_now().date()
+    start_date = today - timedelta(days=30)
+
+    payload = {
+        "symbol": "NSE:RELIANCE-EQ",
+        "resolution": "D",
+        "date_format": "1",
+        "range_from": start_date.isoformat(),
+        "range_to": today.isoformat(),
+        "cont_flag": "1",
+    }
+
+    try:
+        client = fyers_service.create_client(
+            access_token,
+            use_cache=False,
+        )
+
+        response = client.history(payload)
+
+        return jsonify(
+            {
+                "success": True,
+                "client_id_suffix": (
+                    fyers_service.client_id[-4:]
+                    if fyers_service.client_id
+                    else None
+                ),
+                "redirect_uri": (
+                    fyers_service.redirect_uri
+                ),
+                "request_payload": payload,
+                "fyers_response": response,
+            }
+        )
+
+    except Exception as exception:
+        return jsonify(
+            {
+                "success": False,
+                "client_id_suffix": (
+                    fyers_service.client_id[-4:]
+                    if fyers_service.client_id
+                    else None
+                ),
+                "redirect_uri": (
+                    fyers_service.redirect_uri
+                ),
+                "request_payload": payload,
+                "error_type": (
+                    type(exception).__name__
+                ),
+                "error": str(exception),
+            }
+        ), 500
 
 
 # ==========================================================
