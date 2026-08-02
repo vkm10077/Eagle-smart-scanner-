@@ -1393,8 +1393,8 @@ class ResearchEngine:
                         ),
                         reasons=[
                             (
-                                "Verified stock research "
-                                "could not be completed."
+                                f"{type(exception).__name__}: "
+                                f"{str(exception) or 'Verified stock research could not be completed.'}"
                             )
                         ],
                         technical=(
