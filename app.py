@@ -209,14 +209,14 @@ SCAN_STATUS_CACHE_KEY = (
 # ==========================================================
 
 SECTOR_INDEX_SYMBOLS: dict[str, str] = {
-    "Banking and Finance": "NSE:BANKBEES-EQ",
-    "Technology": "NSE:ITBEES-EQ",
-    "Consumer": "NSE:CONSUMBEES-EQ",
+    "Banking and Finance": "NSE:NIFTYBEES-EQ",
+    "Technology": "NSE:NIFTYBEES-EQ",
+    "Consumer": "NSE:NIFTYBEES-EQ",
     "Industrials": "NSE:NIFTYBEES-EQ",
-    "Energy": "NSE:PSUBNKBEES-EQ",
-    "Healthcare": "NSE:PHARMABEES-EQ",
-    "Materials": "NSE:METALBEES-EQ",
-    "Automobile": "NSE:AUTOBEES-EQ",
+    "Energy": "NSE:NIFTYBEES-EQ",
+    "Healthcare": "NSE:NIFTYBEES-EQ",
+    "Materials": "NSE:NIFTYBEES-EQ",
+    "Automobile": "NSE:NIFTYBEES-EQ",
     "Communication": "NSE:NIFTYBEES-EQ",
     "Real Estate": "NSE:NIFTYBEES-EQ",
     "Other": "NSE:NIFTYBEES-EQ",
