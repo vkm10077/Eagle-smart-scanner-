@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+
+    <title>{{ app_name }} | Privacy & Disclaimer</title>
+
+    <meta
+        name="theme-color"
+        content="#07111f"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body class="privacy-page">
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand-area">
+                <div
+                    class="brand-mark"
+                    aria-hidden="true"
+                >
+                    E
+                </div>
+
+                <div>
+                    <p class="eyebrow">
+                        PRIVACY & RISK DISCLOSURE
+                    </p>
+
+                    <h1>
+                        Eagle Smart Scanner
+                    </h1>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <a
+                    class="secondary-button"
+                    href="{{ url_for('home') }}"
+                >
+                    Back
+                </a>
+            </div>
+        </header>
+
+        <main class="dashboard-content">
+            <section class="privacy-hero">
+                <p class="eyebrow">
+                    IMPORTANT INFORMATION
+                </p>
+
+                <h2>
+                    Privacy, Data Use and Trading Disclaimer
+                </h2>
+
+                <p>
+                    Eagle Smart Scanner is designed as a research and
+                    decision-support dashboard. It does not guarantee profit,
+                    future returns or the accuracy of any market prediction.
+                </p>
+            </section>
+
+            <section class="privacy-grid">
+                <article class="privacy-card">
+                    <h3>
+                        1. Research Tool Only
+                    </h3>
+
+                    <p>
+                        BUY and STRONG BUY signals are calculated from verified
+                        technical, fundamental, sector and chart-pattern data.
+                        These signals are research outputs and not personalized
+                        investment advice.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        2. No Profit Guarantee
+                    </h3>
+
+                    <p>
+                        Market prices may move against the signal. Probability,
+                        target and holding-period values are estimates based on
+                        available data and should never be treated as guaranteed
+                        outcomes.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        3. Risk Management
+                    </h3>
+
+                    <p>
+                        Always verify entry, stop-loss, target, position size,
+                        liquidity and current market conditions before placing
+                        any trade or investment order.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        4. Data Sources
+                    </h3>
+
+                    <p>
+                        Live and historical market data may be obtained through
+                        FYERS. Fundamental data may be obtained through a
+                        configured third-party provider such as Financial
+                        Modeling Prep.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        5. Missing Data
+                    </h3>
+
+                    <p>
+                        The dashboard does not intentionally create fake prices,
+                        fake financial values or artificial BUY signals. Missing,
+                        stale or invalid data may cause a stock to be rejected or
+                        displayed as NO TRADE.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        6. Authentication
+                    </h3>
+
+                    <p>
+                        FYERS authentication is completed through the official
+                        FYERS login process. The dashboard does not ask you to
+                        enter your FYERS password directly.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        7. Access Tokens
+                    </h3>
+
+                    <p>
+                        The application may temporarily store an access token in
+                        the server session or in-memory cache so that live market
+                        data can be requested. Tokens should never be committed
+                        to GitHub or written directly inside source-code files.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        8. Third-Party Services
+                    </h3>
+
+                    <p>
+                        Availability and accuracy depend on external APIs,
+                        internet connectivity, exchange data and provider limits.
+                        The dashboard may become temporarily unavailable when a
+                        provider is down or a rate limit is reached.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        9. Background Scanning
+                    </h3>
+
+                    <p>
+                        Scans may continue in the background and cached results
+                        may be shown for faster loading. Results marked stale or
+                        unverified should not be used for trading decisions.
+                    </p>
+                </article>
+
+                <article class="privacy-card">
+                    <h3>
+                        10. User Responsibility
+                    </h3>
+
+                    <p>
+                        You remain fully responsible for every trade, investment,
+                        order, loss, tax consequence and financial decision made
+                        using information from this dashboard.
+                    </p>
+                </article>
+            </section>
+
+            <section class="privacy-warning">
+                <strong>
+                    Final warning:
+                </strong>
+
+                Trading and investing involve financial risk. Never invest money
+                that you cannot afford to lose, and consult a qualified financial
+                professional when required.
+            </section>
+        </main>
+
+        <footer class="dashboard-footer">
+            <div>
+                <strong>
+                    {{ app_name }}
+                </strong>
+
+                <span>
+                    Version {{ app_version }}
+                </span>
+            </div>
+
+            <div>
+                <span>
+                    © {{ current_year }}
+                </span>
+
+                <a href="{{ url_for('home') }}">
+                    Dashboard
+                </a>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
