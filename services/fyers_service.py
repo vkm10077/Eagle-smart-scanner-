@@ -486,7 +486,7 @@ class FyersService:
 
                 raise FyersAPIError(message)
 
-             return response
+         return response
 
          except FyersAPIError:
           raise
