@@ -453,7 +453,7 @@ class FyersService:
                 f"FYERS method '{method_name}' is unavailable."
             )
 
-                try:
+        try:
             if payload is None:
                 response = method()
             else:
