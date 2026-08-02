@@ -453,7 +453,7 @@ class FyersService:
                 f"FYERS method '{method_name}' is unavailable."
             )
 
-        try:
+                try:
             if payload is None:
                 response = method()
             else:
@@ -468,10 +468,13 @@ class FyersService:
                 response
             ):
                 logger.error(
-                    "FYERS API FAILED | method=%s | payload=%s | response=%s",
-                     method_name,
-                     payload,
-                     response,
+                    (
+                        "FYERS API FAILED | "
+                        "method=%s | payload=%s | response=%s"
+                    ),
+                    method_name,
+                    payload,
+                    response,
                     extra=build_log_extra(
                         component="fyers_service",
                         event="api_failed",
@@ -486,10 +489,10 @@ class FyersService:
 
                 raise FyersAPIError(message)
 
-         return response
+            return response
 
-         except FyersAPIError:
-          raise
+        except FyersAPIError:
+            raise
 
         except Exception as exception:
             log_exception(
