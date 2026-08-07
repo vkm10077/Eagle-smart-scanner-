@@ -958,9 +958,7 @@ _global_sector_scanner: (
 def get_sector_scanner(
 ) -> SectorScanner:
 
-    global (
-        _global_sector_scanner
-    )
+    global _global_sector_scanner
 
     if (
         _global_sector_scanner
