@@ -3495,3 +3495,551 @@ img {
             0.01ms !important;
     }
 }
+
+/* =========================================================
+   CLICKABLE TOP SECTOR CARDS
+   ========================================================= */
+
+.top-sector-card {
+    cursor: pointer;
+    transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        background-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.top-sector-card:hover,
+.top-sector-card:focus-visible {
+    transform: translateY(-2px);
+
+    border-color:
+        rgba(45, 212, 191, 0.55);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(18, 42, 56, 0.98),
+            rgba(9, 28, 40, 0.98)
+        );
+}
+
+.top-sector-card.active {
+    border-color:
+        rgba(45, 212, 191, 0.8);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 78, 74, 0.34),
+            rgba(9, 35, 40, 0.96)
+        );
+
+    box-shadow:
+        0 0 0 1px
+        rgba(45, 212, 191, 0.16),
+        0 16px 34px
+        rgba(0, 0, 0, 0.28);
+}
+
+.top-sector-card.active
+.sector-score {
+    border-color:
+        rgba(45, 212, 191, 0.75);
+
+    background:
+        rgba(45, 212, 191, 0.2);
+}
+
+
+/* =========================================================
+   SELECTED SECTOR STOCKS SECTION
+   ========================================================= */
+
+.sector-stock-section {
+    margin-bottom: 28px;
+}
+
+.sector-stock-panel {
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        var(--radius-medium);
+
+    background:
+        rgba(11, 23, 38, 0.88);
+
+    box-shadow:
+        var(--shadow-small);
+}
+
+.sector-stock-header {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 18px;
+
+    padding: 18px;
+
+    border-bottom:
+        1px solid
+        var(--border);
+}
+
+.sector-stock-header h3 {
+    margin: 0;
+
+    font-size: 1.05rem;
+}
+
+.sector-stock-header p {
+    margin: 4px 0 0;
+
+    color:
+        var(--text-muted);
+
+    font-size: 0.75rem;
+}
+
+.sector-stock-count {
+    flex: 0 0 auto;
+
+    padding:
+        6px 10px;
+
+    border:
+        1px solid
+        rgba(45, 212, 191, 0.3);
+
+    border-radius:
+        999px;
+
+    background:
+        var(--accent-soft);
+
+    color:
+        var(--accent);
+
+    font-size:
+        0.72rem;
+
+    font-weight:
+        800;
+}
+
+
+/* =========================================================
+   TOP 10 STOCK TABLE
+   ========================================================= */
+
+.sector-stock-scroll {
+    overflow-x: auto;
+
+    -webkit-overflow-scrolling:
+        touch;
+}
+
+.sector-stock-table {
+    width: 100%;
+
+    min-width: 980px;
+
+    border-collapse: collapse;
+}
+
+.sector-stock-table th {
+    padding:
+        13px 14px;
+
+    border-bottom:
+        1px solid
+        var(--border-strong);
+
+    background:
+        #102033;
+
+    color:
+        #9fb0c4;
+
+    font-size:
+        0.68rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        0.04em;
+
+    text-align:
+        left;
+
+    text-transform:
+        uppercase;
+
+    white-space:
+        nowrap;
+}
+
+.sector-stock-table td {
+    padding:
+        13px 14px;
+
+    border-bottom:
+        1px solid
+        var(--border);
+
+    color:
+        var(--text-soft);
+
+    font-size:
+        0.82rem;
+
+    white-space:
+        nowrap;
+}
+
+.sector-stock-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.sector-stock-table tbody tr:hover {
+    background:
+        rgba(45, 212, 191, 0.045);
+}
+
+.sector-stock-name {
+    min-width: 190px;
+}
+
+.sector-stock-name strong {
+    display: block;
+
+    color:
+        var(--text-main);
+}
+
+.sector-stock-name small {
+    display: block;
+
+    margin-top: 3px;
+
+    color:
+        var(--text-muted);
+
+    font-size:
+        0.66rem;
+}
+
+
+/* =========================================================
+   STOCK RANK
+   ========================================================= */
+
+.stock-rank {
+    display: inline-grid;
+
+    width: 32px;
+    height: 32px;
+
+    place-items: center;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        9px;
+
+    background:
+        rgba(148, 163, 184, 0.07);
+
+    color:
+        var(--text-soft);
+
+    font-size:
+        0.72rem;
+
+    font-weight:
+        800;
+}
+
+
+/* =========================================================
+   SCORE BADGES
+   ========================================================= */
+
+.stock-score-badge {
+    display: inline-flex;
+
+    min-width: 54px;
+
+    align-items: center;
+    justify-content: center;
+
+    padding:
+        5px 8px;
+
+    border-radius:
+        8px;
+
+    background:
+        var(--accent-soft);
+
+    color:
+        var(--accent);
+
+    font-size:
+        0.72rem;
+
+    font-weight:
+        850;
+}
+
+.stock-score-badge.high {
+    background:
+        var(--positive-soft);
+
+    color:
+        #86efac;
+}
+
+.stock-score-badge.medium {
+    background:
+        var(--warning-soft);
+
+    color:
+        #fcd34d;
+}
+
+
+/* =========================================================
+   PASS / FAIL BADGES
+   ========================================================= */
+
+.condition-badge {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-width: 62px;
+
+    padding:
+        5px 9px;
+
+    border-radius:
+        999px;
+
+    font-size:
+        0.68rem;
+
+    font-weight:
+        850;
+}
+
+.condition-pass {
+    border:
+        1px solid
+        rgba(34, 197, 94, 0.35);
+
+    background:
+        var(--positive-soft);
+
+    color:
+        #86efac;
+}
+
+.condition-fail {
+    border:
+        1px solid
+        rgba(239, 68, 68, 0.32);
+
+    background:
+        var(--negative-soft);
+
+    color:
+        #fca5a5;
+}
+
+.condition-neutral {
+    border:
+        1px solid
+        var(--border);
+
+    background:
+        rgba(148, 163, 184, 0.07);
+
+    color:
+        var(--text-muted);
+}
+
+
+/* =========================================================
+   STRONG BUY ROW
+   ========================================================= */
+
+.sector-stock-table
+tr.strong-buy-candidate {
+    background:
+        rgba(34, 197, 94, 0.055);
+}
+
+.sector-stock-table
+tr.strong-buy-candidate:hover {
+    background:
+        rgba(34, 197, 94, 0.09);
+}
+
+
+/* =========================================================
+   LOADING STATE
+   ========================================================= */
+
+.sector-stocks-loading {
+    display: grid;
+
+    gap: 10px;
+
+    padding: 18px;
+}
+
+.sector-stock-skeleton {
+    height: 54px;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            100deg,
+            rgba(16, 32, 51, 0.8) 20%,
+            rgba(28, 48, 69, 0.8) 40%,
+            rgba(16, 32, 51, 0.8) 60%
+        );
+
+    background-size:
+        200% 100%;
+
+    animation:
+        skeleton-loading
+        1.4s
+        linear
+        infinite;
+}
+
+
+/* =========================================================
+   EMPTY / ERROR STATE
+   ========================================================= */
+
+.sector-stock-empty,
+.sector-stock-error {
+    padding: 28px;
+
+    color:
+        var(--text-muted);
+
+    text-align: center;
+}
+
+.sector-stock-error {
+    color:
+        #fecaca;
+
+    background:
+        var(--negative-soft);
+}
+
+
+/* =========================================================
+   VOICE / SIGNAL ALERT
+   ========================================================= */
+
+.voice-alert-badge {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    padding:
+        6px 10px;
+
+    border:
+        1px solid
+        rgba(34, 197, 94, 0.35);
+
+    border-radius:
+        999px;
+
+    background:
+        var(--positive-soft);
+
+    color:
+        #86efac;
+
+    font-size:
+        0.68rem;
+
+    font-weight:
+        800;
+}
+
+.voice-alert-badge::before {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background:
+        var(--positive);
+
+    content: "";
+
+    box-shadow:
+        0 0 0 4px
+        rgba(34, 197, 94, 0.12);
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1000px) {
+
+    .sector-stock-header {
+        align-items: flex-start;
+    }
+
+    .sector-stock-table {
+        min-width: 920px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 620px) {
+
+    .sector-stock-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+    .sector-stock-count {
+        align-self: flex-start;
+    }
+
+    .sector-stock-table {
+        min-width: 880px;
+    }
+}
