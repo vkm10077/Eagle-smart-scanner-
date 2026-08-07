@@ -634,9 +634,7 @@ _global_technical_metrics_service: (
 
 def get_technical_metrics_service(
 ) -> TechnicalMetricsService:
-    global (
-        _global_technical_metrics_service
-    )
+    global _global_technical_metrics_service
 
     if (
         _global_technical_metrics_service
