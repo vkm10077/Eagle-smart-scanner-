@@ -1,349 +1,283 @@
 from __future__ import annotations
 
-from collections import Counter
-from typing import Iterable
-
-from data.nifty500 import (
-    Nifty500Stock,
-    get_nifty500_stocks,
-)
+from collections import defaultdict
+from typing import Dict, Iterable, List, Mapping
 
 
-UNKNOWN_SECTOR = "Unknown"
-
-
+# ---------------------------------------------------------
+# Normalized sector names used by Eagle Smart Scanner
+# ---------------------------------------------------------
 SECTOR_ALIASES: dict[str, str] = {
-    "automobile and auto components": "Automobile",
-    "automobiles": "Automobile",
-    "auto components": "Automobile",
-    "capital goods": "Capital Goods",
-    "consumer durables": "Consumer Durables",
-    "consumer services": "Consumer Services",
-    "fast moving consumer goods": "FMCG",
     "financial services": "Financial Services",
-    "healthcare": "Healthcare",
+    "finance": "Financial Services",
+    "banks": "Financial Services",
+    "banking": "Financial Services",
+
     "information technology": "Information Technology",
-    "media entertainment & publication": "Media",
-    "media, entertainment & publication": "Media",
-    "metals & mining": "Metals and Mining",
-    "oil gas & consumable fuels": "Oil and Gas",
-    "oil, gas & consumable fuels": "Oil and Gas",
-    "power": "Power",
-    "realty": "Real Estate",
-    "services": "Services",
+    "it": "Information Technology",
+    "technology": "Information Technology",
+
+    "oil gas & consumable fuels": "Oil Gas & Consumable Fuels",
+    "oil & gas": "Oil Gas & Consumable Fuels",
+    "energy": "Oil Gas & Consumable Fuels",
+
+    "fast moving consumer goods": "FMCG",
+    "fmcg": "FMCG",
+
+    "automobile and auto components": "Automobile & Auto Components",
+    "automobile": "Automobile & Auto Components",
+    "auto": "Automobile & Auto Components",
+
+    "healthcare": "Healthcare",
+    "pharmaceuticals": "Healthcare",
+    "pharma": "Healthcare",
+
+    "metals & mining": "Metals & Mining",
+    "metal": "Metals & Mining",
+    "metals": "Metals & Mining",
+
+    "consumer durables": "Consumer Durables",
+
+    "consumer services": "Consumer Services",
+
     "telecommunication": "Telecommunication",
-    "textiles": "Textiles",
-    "chemicals": "Chemicals",
+    "telecom": "Telecommunication",
+
+    "power": "Power",
+
     "construction": "Construction",
+
     "construction materials": "Construction Materials",
-    "diversified": "Diversified",
+
+    "realty": "Realty",
+    "real estate": "Realty",
+
+    "capital goods": "Capital Goods",
+
+    "chemicals": "Chemicals",
+
+    "services": "Services",
+
+    "textiles": "Textiles",
+
+    "media entertainment & publication": "Media & Entertainment",
+    "media": "Media & Entertainment",
+
     "forest materials": "Forest Materials",
+
+    "diversified": "Diversified",
 }
 
 
-SECTOR_GROUPS: dict[str, tuple[str, ...]] = {
-    "Banking and Finance": (
-        "Bank",
-        "Financial Services",
-        "Finance",
-        "Insurance",
-        "Capital Markets",
-    ),
-    "Technology": (
-        "Information Technology",
-        "Software",
-        "Technology",
-        "IT Services",
-    ),
-    "Consumer": (
-        "FMCG",
-        "Consumer Durables",
-        "Consumer Services",
-        "Retail",
-    ),
-    "Industrials": (
-        "Capital Goods",
-        "Construction",
-        "Construction Materials",
-        "Engineering",
-        "Industrial Products",
-    ),
-    "Energy": (
-        "Oil and Gas",
-        "Power",
-        "Energy",
-    ),
-    "Healthcare": (
-        "Healthcare",
-        "Pharmaceuticals",
-        "Hospitals",
-    ),
-    "Materials": (
-        "Metals and Mining",
-        "Chemicals",
-        "Cement",
-        "Forest Materials",
-    ),
-    "Automobile": (
-        "Automobile",
-        "Auto Components",
-    ),
-    "Communication": (
-        "Telecommunication",
-        "Media",
-    ),
-    "Real Estate": (
-        "Real Estate",
-        "Realty",
-    ),
-}
+def normalize_sector_name(value: str | None) -> str:
+    """
+    Convert raw sector names into one consistent sector label.
+    """
+    if not value:
+        return "Unknown"
+
+    clean = " ".join(str(value).strip().split())
+
+    if not clean:
+        return "Unknown"
+
+    alias_key = clean.lower()
+
+    return SECTOR_ALIASES.get(alias_key, clean)
 
 
-def _clean_text(value: object) -> str:
-    if value is None:
+def normalize_symbol(symbol: str | None) -> str:
+    """
+    Normalize NSE stock symbol.
+
+    Examples:
+        NSE:RELIANCE-EQ -> RELIANCE
+        RELIANCE-EQ     -> RELIANCE
+        reliance        -> RELIANCE
+    """
+    if not symbol:
         return ""
 
-    text = str(value).strip()
+    value = str(symbol).strip().upper()
 
-    if text.lower() in {
-        "",
-        "nan",
-        "none",
-        "null",
-        "n/a",
-        "na",
-    }:
+    if value.startswith("NSE:"):
+        value = value[4:]
+
+    if value.endswith("-EQ"):
+        value = value[:-3]
+
+    return value.strip()
+
+
+def to_fyers_symbol(symbol: str | None) -> str:
+    """
+    Convert normal NSE symbol into FYERS equity format.
+
+    Example:
+        RELIANCE -> NSE:RELIANCE-EQ
+    """
+    clean = normalize_symbol(symbol)
+
+    if not clean:
         return ""
 
-    return " ".join(text.split())
-
-
-def normalize_sector_name(sector_name: object) -> str:
-    cleaned_sector = _clean_text(sector_name)
-
-    if not cleaned_sector:
-        return UNKNOWN_SECTOR
-
-    alias_key = cleaned_sector.casefold()
-
-    if alias_key in SECTOR_ALIASES:
-        return SECTOR_ALIASES[alias_key]
-
-    return cleaned_sector
-
-
-def get_stock_sector(
-    symbol: str,
-    stocks: Iterable[Nifty500Stock] | None = None,
-) -> str:
-    normalized_symbol = _clean_text(symbol).upper()
-
-    normalized_symbol = normalized_symbol.replace(
-        "NSE:",
-        "",
-    )
-    normalized_symbol = normalized_symbol.replace(
-        "-EQ",
-        "",
-    )
-    normalized_symbol = normalized_symbol.replace(
-        ".NS",
-        "",
-    )
-
-    if not normalized_symbol:
-        return UNKNOWN_SECTOR
-
-    stock_list = (
-        list(stocks)
-        if stocks is not None
-        else get_nifty500_stocks()
-    )
-
-    for stock in stock_list:
-        if stock.symbol.upper() == normalized_symbol:
-            return normalize_sector_name(stock.industry)
-
-    return UNKNOWN_SECTOR
+    return f"NSE:{clean}-EQ"
 
 
 def build_sector_map(
-    force_refresh: bool = False,
-) -> dict[str, str]:
-    stocks = get_nifty500_stocks(
-        force_refresh=force_refresh
-    )
+    stocks: Iterable[Mapping[str, object]],
+) -> Dict[str, List[dict]]:
+    """
+    Group stock records sector-wise.
 
-    return {
-        stock.symbol: normalize_sector_name(
-            stock.industry
-        )
-        for stock in stocks
-    }
+    Expected stock record example:
 
+        {
+            "symbol": "RELIANCE",
+            "name": "Reliance Industries",
+            "sector": "Oil Gas & Consumable Fuels"
+        }
 
-def get_sector_stocks(
-    sector_name: str,
-    force_refresh: bool = False,
-) -> list[dict[str, str]]:
-    normalized_requested_sector = normalize_sector_name(
-        sector_name
-    ).casefold()
+    Output:
 
-    stocks = get_nifty500_stocks(
-        force_refresh=force_refresh
-    )
+        {
+            "Oil Gas & Consumable Fuels": [
+                {...},
+                {...}
+            ]
+        }
+    """
+    sector_map: defaultdict[str, List[dict]] = defaultdict(list)
 
-    matching_stocks: list[dict[str, str]] = []
+    seen_symbols: set[str] = set()
 
     for stock in stocks:
-        normalized_stock_sector = normalize_sector_name(
-            stock.industry
+        symbol = normalize_symbol(
+            str(stock.get("symbol", "") or "")
         )
 
-        if (
-            normalized_stock_sector.casefold()
-            != normalized_requested_sector
-        ):
+        if not symbol:
             continue
 
-        matching_stocks.append(
+        # Avoid duplicate stocks
+        if symbol in seen_symbols:
+            continue
+
+        seen_symbols.add(symbol)
+
+        sector = normalize_sector_name(
+            str(stock.get("sector", "") or "")
+        )
+
+        name = str(
+            stock.get("name")
+            or stock.get("company_name")
+            or symbol
+        ).strip()
+
+        sector_map[sector].append(
             {
-                "company_name": stock.company_name,
-                "symbol": stock.symbol,
-                "sector": normalized_stock_sector,
-                "fyers_symbol": stock.fyers_symbol,
+                "symbol": symbol,
+                "fyers_symbol": to_fyers_symbol(symbol),
+                "name": name,
+                "sector": sector,
             }
         )
 
-    matching_stocks.sort(
-        key=lambda item: item["company_name"].casefold()
-    )
+    # Stable alphabetical ordering
+    result: Dict[str, List[dict]] = {}
 
-    return matching_stocks
+    for sector in sorted(sector_map.keys()):
+        result[sector] = sorted(
+            sector_map[sector],
+            key=lambda item: item["symbol"],
+        )
+
+    return result
 
 
-def get_all_sectors(
-    force_refresh: bool = False,
-) -> list[str]:
-    sector_map = build_sector_map(
-        force_refresh=force_refresh
-    )
+def get_sector_for_symbol(
+    symbol: str,
+    stocks: Iterable[Mapping[str, object]],
+) -> str:
+    """
+    Return sector for a particular stock symbol.
+    """
+    target = normalize_symbol(symbol)
 
-    sectors = {
-        sector
-        for sector in sector_map.values()
-        if sector != UNKNOWN_SECTOR
-    }
+    for stock in stocks:
+        stock_symbol = normalize_symbol(
+            str(stock.get("symbol", "") or "")
+        )
+
+        if stock_symbol == target:
+            return normalize_sector_name(
+                str(stock.get("sector", "") or "")
+            )
+
+    return "Unknown"
+
+
+def flatten_sector_map(
+    sector_map: Mapping[str, Iterable[Mapping[str, object]]],
+) -> List[dict]:
+    """
+    Convert a sector-wise dictionary back into one clean stock list.
+    """
+    stocks: List[dict] = []
+    seen: set[str] = set()
+
+    for sector, sector_stocks in sector_map.items():
+        clean_sector = normalize_sector_name(sector)
+
+        for stock in sector_stocks:
+            symbol = normalize_symbol(
+                str(stock.get("symbol", "") or "")
+            )
+
+            if not symbol or symbol in seen:
+                continue
+
+            seen.add(symbol)
+
+            stocks.append(
+                {
+                    "symbol": symbol,
+                    "fyers_symbol": to_fyers_symbol(symbol),
+                    "name": str(
+                        stock.get("name")
+                        or stock.get("company_name")
+                        or symbol
+                    ),
+                    "sector": clean_sector,
+                }
+            )
+
+    return stocks
+
+
+def sector_summary(
+    sector_map: Mapping[str, Iterable[Mapping[str, object]]],
+) -> List[dict]:
+    """
+    Simple summary used later by dashboard/debugging.
+    """
+    rows: List[dict] = []
+
+    for sector, stocks in sector_map.items():
+        stock_list = list(stocks)
+
+        rows.append(
+            {
+                "sector": normalize_sector_name(sector),
+                "stock_count": len(stock_list),
+            }
+        )
 
     return sorted(
-        sectors,
-        key=str.casefold,
+        rows,
+        key=lambda row: (
+            -row["stock_count"],
+            row["sector"],
+        ),
     )
-
-
-def get_sector_counts(
-    force_refresh: bool = False,
-) -> dict[str, int]:
-    sector_map = build_sector_map(
-        force_refresh=force_refresh
-    )
-
-    sector_counter = Counter(
-        sector_map.values()
-    )
-
-    return dict(
-        sorted(
-            sector_counter.items(),
-            key=lambda item: (
-                -item[1],
-                item[0].casefold(),
-            ),
-        )
-    )
-
-
-def get_sector_group(
-    sector_name: str,
-) -> str:
-    normalized_sector = normalize_sector_name(
-        sector_name
-    )
-
-    normalized_sector_casefold = (
-        normalized_sector.casefold()
-    )
-
-    for group_name, group_sectors in SECTOR_GROUPS.items():
-        for group_sector in group_sectors:
-            group_sector_casefold = group_sector.casefold()
-
-            if (
-                group_sector_casefold
-                in normalized_sector_casefold
-                or normalized_sector_casefold
-                in group_sector_casefold
-            ):
-                return group_name
-
-    return "Other"
-
-
-def build_sector_group_map(
-    force_refresh: bool = False,
-) -> dict[str, str]:
-    sector_map = build_sector_map(
-        force_refresh=force_refresh
-    )
-
-    return {
-        symbol: get_sector_group(sector)
-        for symbol, sector in sector_map.items()
-    }
-
-
-def get_sector_summary(
-    force_refresh: bool = False,
-) -> list[dict[str, object]]:
-    sector_counts = get_sector_counts(
-        force_refresh=force_refresh
-    )
-
-    summary: list[dict[str, object]] = []
-
-    for sector, stock_count in sector_counts.items():
-        summary.append(
-            {
-                "sector": sector,
-                "sector_group": get_sector_group(
-                    sector
-                ),
-                "stock_count": stock_count,
-            }
-        )
-
-    return summary
-
-
-def search_sectors(
-    query: str,
-    limit: int = 20,
-) -> list[str]:
-    normalized_query = _clean_text(query).casefold()
-
-    if not normalized_query:
-        return []
-
-    safe_limit = max(
-        1,
-        min(int(limit), 50),
-    )
-
-    matched_sectors = [
-        sector
-        for sector in get_all_sectors()
-        if normalized_query in sector.casefold()
-    ]
-
-    return matched_sectors[:safe_limit]
