@@ -1050,9 +1050,8 @@ _global_lock = (
 def get_nse_sector_universe_service(
 ) -> NSESectorUniverseService:
 
-    global (
-        _global_nse_sector_universe_service
-    )
+    global _global_nse_sector_universe_service
+    
 
     if (
         _global_nse_sector_universe_service
