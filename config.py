@@ -1,138 +1,152 @@
+from __future__ import annotations
+
 import os
-from datetime import timedelta
-from dotenv import load_dotenv
-
-load_dotenv()
+from dataclasses import dataclass
 
 
+@dataclass(frozen=True)
 class Config:
-    # ==========================================================
-    # PROJECT INFORMATION
-    # ==========================================================
-    APP_NAME = "Eagle Smart Scanner"
-    VERSION = "1.0.0"
+    # -----------------------------
+    # APP SETTINGS
+    # -----------------------------
+    APP_NAME: str = "Eagle Smart Scanner"
+    APP_VERSION: str = "2.0.0"
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-secret-key")
 
-    SECRET_KEY = os.getenv(
-        "SECRET_KEY",
-        "CHANGE_THIS_TO_A_RANDOM_SECRET_KEY"
+    # -----------------------------
+    # MARKET SETTINGS
+    # -----------------------------
+    MARKET_TIMEZONE: str = "Asia/Kolkata"
+    MARKET_OPEN_HOUR: int = 9
+    MARKET_OPEN_MINUTE: int = 15
+    MARKET_CLOSE_HOUR: int = 15
+    MARKET_CLOSE_MINUTE: int = 30
+
+    # -----------------------------
+    # SCANNER UNIVERSE
+    # -----------------------------
+    INDEX_NAME: str = "NIFTY 500"
+
+    # Top 10 strongest sectors
+    TOP_SECTORS_COUNT: int = 10
+
+    # Top 10 stocks from every selected sector
+    TOP_STOCKS_PER_SECTOR: int = 10
+
+    # Maximum initial stock universe:
+    # 10 sectors × 10 stocks = 100 stocks
+    MAX_SCANNER_UNIVERSE: int = (
+        TOP_SECTORS_COUNT * TOP_STOCKS_PER_SECTOR
     )
 
-    # ==========================================================
-    # FYERS API
-    # ==========================================================
-    FYERS_CLIENT_ID = os.getenv("FYERS_CLIENT_ID", "")
-    FYERS_SECRET_KEY = os.getenv("FYERS_SECRET_KEY", "")
-    FYERS_REDIRECT_URI = os.getenv("FYERS_REDIRECT_URI", "")
+    # -----------------------------
+    # TECHNICAL SETTINGS
+    # -----------------------------
+    EMA_FAST: int = 20
+    EMA_MEDIUM: int = 50
+    EMA_LONG: int = 200
 
-    # ==========================================================
-    # SESSION
-    # ==========================================================
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=12)
+    RSI_PERIOD: int = 14
+    RSI_MIN_STRONG_BUY: float = 55.0
+    RSI_MAX_STRONG_BUY: float = 75.0
 
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = "Lax"
+    MACD_FAST: int = 12
+    MACD_SLOW: int = 26
+    MACD_SIGNAL: int = 9
 
-    # HTTPS deploy होने पर True कर देंगे
-    SESSION_COOKIE_SECURE = False
+    ATR_PERIOD: int = 14
 
-    # ==========================================================
-    # CACHE
-    # ==========================================================
-    CACHE_TIMEOUT = 60
+    SUPERTREND_PERIOD: int = 10
+    SUPERTREND_MULTIPLIER: float = 3.0
 
-    INDEX_REFRESH_SECONDS = 10
-    STOCK_REFRESH_SECONDS = 15
-    SCANNER_REFRESH_SECONDS = 180
+    VOLUME_AVG_PERIOD: int = 20
+    MIN_VOLUME_RATIO: float = 1.20
 
-    # ==========================================================
-    # SCANNER SETTINGS
-    # ==========================================================
-    DEFAULT_TIMEFRAME = "3_month"
+    # -----------------------------
+    # STRONG BUY RULES
+    # -----------------------------
+    STRONG_BUY_MIN_SCORE: float = 80.0
 
-    SUPPORTED_TIMEFRAMES = [
-        "15_30_days",
-        "3_month",
-        "6_month",
-        "1_year",
-        "3_year"
-    ]
+    # Minimum number of technical confirmations
+    MIN_CONFIRMATIONS: int = 6
 
-    SHOW_SIGNALS = [
-        "BUY",
-        "STRONG BUY"
-    ]
+    # -----------------------------
+    # RISK MANAGEMENT
+    # -----------------------------
+    MIN_RISK_REWARD: float = 2.0
+    STOP_LOSS_ATR_MULTIPLIER: float = 1.5
+    TARGET_ATR_MULTIPLIER: float = 3.0
 
-    MAX_STOCKS = 500
+    # -----------------------------
+    # DATA / CANDLE SETTINGS
+    # -----------------------------
+    DEFAULT_RESOLUTION: str = "D"
 
-    # ==========================================================
-    # TABLE SETTINGS
-    # ==========================================================
-    DASHBOARD_COLUMNS = [
-        "Stock Name",
-        "Sector",
-        "Current Price",
-        "Entry Price",
-        "Stop Loss",
-        "Target Price",
-        "Move-Up Probability",
-        "Holding Period",
-        "Signal",
-        "View Detail"
-    ]
+    # Number of historical candles required
+    # 260 gives enough room for EMA 200
+    HISTORY_CANDLES: int = 260
 
-    # ==========================================================
-    # TECHNICAL FILTERS
-    # ==========================================================
-    TECHNICAL_FILTERS = [
-        "EMA20",
-        "EMA50",
-        "EMA200",
-        "RSI",
-        "MACD",
-        "SUPERTREND",
-        "ADX",
-        "VOLUME_BREAKOUT",
-        "SUPPORT_RESISTANCE",
-        "RELATIVE_STRENGTH"
-    ]
+    # -----------------------------
+    # AUTO REFRESH
+    # -----------------------------
+    LIVE_PRICE_REFRESH_SECONDS: int = 10
+    TECHNICAL_SCAN_REFRESH_SECONDS: int = 300
+    SECTOR_SCAN_REFRESH_SECONDS: int = 900
 
-    # ==========================================================
-    # FUNDAMENTAL FILTERS
-    # ==========================================================
-    FUNDAMENTAL_FILTERS = [
-        "SALES_GROWTH",
-        "PROFIT_GROWTH",
-        "EPS_GROWTH",
-        "ROE",
-        "ROCE",
-        "DEBT_TO_EQUITY",
-        "OPERATING_CASHFLOW",
-        "PROMOTER_HOLDING",
-        "PROMOTER_PLEDGE",
-        "VALUATION"
-    ]
+    # -----------------------------
+    # CACHE / STORAGE
+    # -----------------------------
+    DATA_DIR: str = os.getenv("DATA_DIR", "runtime_data")
 
-    # ==========================================================
-    # CHART PATTERNS
-    # ==========================================================
-    CHART_PATTERNS = [
-        "CUP_HANDLE",
-        "ASCENDING_TRIANGLE",
-        "SYMMETRICAL_TRIANGLE",
-        "FLAG",
-        "DOUBLE_BOTTOM",
-        "INVERSE_HEAD_SHOULDER",
-        "FALLING_WEDGE",
-        "RECTANGLE_BREAKOUT",
-        "ROUNDED_BOTTOM",
-        "CONSOLIDATION_BREAKOUT"
-    ]
+    PREVIOUS_DAY_FILE: str = os.path.join(
+        DATA_DIR,
+        "previous_day_candidates.json",
+    )
 
-    # ==========================================================
-    # TABLET SUPPORT
-    # ==========================================================
-    TABLET_OPTIMIZED = True
+    CURRENT_DAY_FILE: str = os.path.join(
+        DATA_DIR,
+        "current_day_candidates.json",
+    )
 
-    AUTO_REFRESH = True
+    COMMON_STOCKS_FILE: str = os.path.join(
+        DATA_DIR,
+        "common_stocks.json",
+    )
 
-    DEBUG = False
+    SCAN_RESULTS_FILE: str = os.path.join(
+        DATA_DIR,
+        "scan_results.json",
+    )
+
+    # -----------------------------
+    # FYERS
+    # -----------------------------
+    FYERS_CLIENT_ID: str = os.getenv(
+        "FYERS_CLIENT_ID",
+        "",
+    )
+
+    FYERS_SECRET_KEY: str = os.getenv(
+        "FYERS_SECRET_KEY",
+        "",
+    )
+
+    FYERS_REDIRECT_URI: str = os.getenv(
+        "FYERS_REDIRECT_URI",
+        "",
+    )
+
+    FYERS_ACCESS_TOKEN: str = os.getenv(
+        "FYERS_ACCESS_TOKEN",
+        "",
+    )
+
+    # -----------------------------
+    # VALIDATION
+    # -----------------------------
+    @classmethod
+    def fyers_configured(cls) -> bool:
+        return bool(
+            cls.FYERS_CLIENT_ID
+            and cls.FYERS_ACCESS_TOKEN
+        )
