@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+
+    <title>{{ app_name }} | Dashboard</title>
+
+    <meta
+        name="theme-color"
+        content="#07111f"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body class="dashboard-page">
+
+    <div class="app-shell">
+
+        <!-- ================================================== -->
+        <!-- TOP BAR -->
+        <!-- ================================================== -->
+
+        <header class="topbar">
+
+            <div class="brand-area">
+
+                <div
+                    class="brand-mark"
+                    aria-hidden="true"
+                >
+                    E
+                </div>
+
+                <div>
+                    <p class="eyebrow">
+                        TECHNICAL-ONLY NSE SECTOR SCANNER
+                    </p>
+
+                    <h1>
+                        Eagle Smart Scanner
+                    </h1>
+                </div>
+
+            </div>
+
+
+            <div class="topbar-actions">
+
+                <div class="connection-status">
+
+                    <span
+                        id="connectionDot"
+                        class="status-dot status-warning"
+                    ></span>
+
+                    <span id="connectionText">
+                        Connecting
+                    </span>
+
+                </div>
+
+
+                <a
+                    class="secondary-button"
+                    href="{{ url_for('logout') }}"
+                >
+                    Logout
+                </a>
+
+            </div>
+
+        </header>
+
+
+        <!-- ================================================== -->
+        <!-- FLASH MESSAGES -->
+        <!-- ================================================== -->
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+
+            {% if messages %}
+
+                <div class="flash-stack dashboard-flash-stack">
+
+                    {% for category, message in messages %}
+
+                        <div
+                            class="flash-message flash-{{ category }}"
+                            role="alert"
+                        >
+                            {{ message }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+        {% endwith %}
+
+
+        <main class="dashboard-content">
+
+            <!-- ================================================== -->
+            <!-- LIVE MARKET -->
+            <!-- ================================================== -->
+
+            <section class="market-section">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            LIVE MARKET
+                        </p>
+
+                        <h2>
+                            Main Indices
+                        </h2>
+
+                    </div>
+
+
+                    <div class="section-meta">
+
+                        <span>
+                            Auto refresh
+                        </span>
+
+                        <strong id="indexUpdatedAt">
+                            Waiting for data
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="indexGrid"
+                    class="index-grid"
+                    aria-live="polite"
+                >
+
+                    <div class="index-skeleton"></div>
+                    <div class="index-skeleton"></div>
+                    <div class="index-skeleton"></div>
+                    <div class="index-skeleton"></div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================================== -->
+            <!-- MODE + SCANNER STATUS -->
+            <!-- ================================================== -->
+
+            <section class="control-section">
+
+                <div class="timeframe-control">
+
+                    <p class="control-label">
+                        Trading Mode
+                    </p>
+
+
+                    <div
+                        id="timeframeTabs"
+                        class="timeframe-tabs"
+                    >
+
+                        {% for key, label in supported_modes.items() %}
+
+                            <button
+                                type="button"
+                                class="timeframe-tab {% if mode == key %}active{% endif %}"
+                                data-timeframe="{{ key }}"
+                                data-mode="{{ key }}"
+                            >
+                                {{ label }}
+                            </button>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <p class="scanner-mode-note">
+                        Intraday: 5m + 15m + Daily confirmation
+                        |
+                        Swing: Daily + Weekly confirmation
+                    </p>
+
+                </div>
+
+
+                <div class="scanner-status-card">
+
+                    <div class="scanner-status-main">
+
+                        <div>
+
+                            <p class="control-label">
+                                Scanner Status
+                            </p>
+
+                            <strong id="scannerStatusText">
+
+                                {% if scanner_status.running %}
+                                    Running
+                                {% else %}
+                                    Ready
+                                {% endif %}
+
+                            </strong>
+
+                        </div>
+
+
+                        <button
+                            id="manualRefreshButton"
+                            type="button"
+                            class="primary-button compact-button"
+                        >
+                            Refresh Scan
+                        </button>
+
+                    </div>
+
+
+                    <div class="scanner-progress-track">
+
+                        <div
+                            id="scannerProgressBar"
+                            class="scanner-progress-bar"
+                            style="width: {{ scanner_status.progress_percent or 0 }}%;"
+                        ></div>
+
+                    </div>
+
+
+                    <div class="scanner-status-grid">
+
+                        <span>
+                            Top Sectors
+
+                            <strong id="sectorCount">
+                                {{ scanner_status.sector_count or 0 }}
+                            </strong>
+                        </span>
+
+
+                        <span>
+                            Candidates
+
+                            <strong id="candidateCount">
+                                {{ scanner_status.candidate_count or 0 }}
+                            </strong>
+                        </span>
+
+
+                        <span>
+                            Common
+
+                            <strong id="commonCount">
+                                {{ scanner_status.common_count or 0 }}
+                            </strong>
+                        </span>
+
+
+                        <span>
+                            Strong Buy
+
+                            <strong id="strongBuyCount">
+                                {{ scanner_status.strong_buy_count or 0 }}
+                            </strong>
+                        </span>
+
+                    </div>
+
+
+                    <div class="scanner-stage-row">
+
+                        <span>
+                            Stage:
+                        </span>
+
+                        <strong id="scannerStage">
+                            {{ scanner_status.stage or "idle" }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================================== -->
+            <!-- TOP 10 SECTORS -->
+            <!-- ================================================== -->
+
+            <section class="top-sector-section">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            TECHNICAL SECTOR STRENGTH
+                        </p>
+
+                        <h2>
+                            Top 10 Sectors
+                        </h2>
+
+                    </div>
+
+
+                    <div class="section-meta">
+
+                        <span>
+                            Tap a sector
+                        </span>
+
+                        <strong>
+                            View Top 10 Stocks
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="topSectorGrid"
+                    class="top-sector-grid"
+                    aria-live="polite"
+                >
+
+                    {% if top_sectors %}
+
+                        {% for item in top_sectors %}
+
+                            <button
+                                type="button"
+                                class="top-sector-card sector-select-card"
+                                data-sector="{{ item.sector }}"
+                                aria-label="View top stocks from {{ item.sector }}"
+                            >
+
+                                <div class="top-sector-card-copy">
+
+                                    <strong>
+                                        {{ loop.index }}.
+                                        {{ item.sector }}
+                                    </strong>
+
+                                    <span>
+                                        Tap to view Top 10 stocks
+                                    </span>
+
+                                </div>
+
+
+                                <div class="sector-score-wrap">
+
+                                    <span>
+                                        Score
+                                    </span>
+
+                                    <strong class="sector-score">
+                                        {{ "%.2f"|format(item.score or 0) }}
+                                    </strong>
+
+                                </div>
+
+                            </button>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <div class="empty-sector-state">
+                            Top sectors will appear after the technical scan.
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================================== -->
+            <!-- SELECTED SECTOR TOP 10 STOCKS -->
+            <!-- ================================================== -->
+
+            <section
+                id="sectorStocksSection"
+                class="sector-stocks-section"
+            >
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            SECTOR STOCK RANKING
+                        </p>
+
+                        <h2 id="selectedSectorTitle">
+                            Select a Sector
+                        </h2>
+
+                    </div>
+
+
+                    <div class="section-meta">
+
+                        <span id="sectorStockCount">
+                            0 stocks
+                        </span>
+
+                        <strong id="sectorStocksUpdatedAt">
+                            Tap a Top Sector above
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="sector-stock-info">
+
+                    <p>
+                        This section shows the Top 10 technically ranked
+                        stocks of the selected sector.
+                        They do not need to pass the final Strong Buy condition.
+                    </p>
+
+                    <p>
+                        A stock that passes the complete Eagle Strong Buy
+                        condition will be marked
+                        <strong>STRONG BUY</strong>
+                        and will also appear in the final scanner below.
+                    </p>
+
+                </div>
+
+
+                <div
+                    id="sectorStocksLoading"
+                    class="detail-loading"
+                    hidden
+                >
+                    Loading Top 10 sector stocks...
+                </div>
+
+
+                <div
+                    id="sectorStocksError"
+                    class="detail-error"
+                    hidden
+                ></div>
+
+
+                <div class="table-card">
+
+                    <div class="table-scroll">
+
+                        <table class="signal-table sector-stock-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Rank
+                                    </th>
+
+                                    <th>
+                                        Stock
+                                    </th>
+
+                                    <th>
+                                        Sector
+                                    </th>
+
+                                    <th>
+                                        Current Price
+                                    </th>
+
+                                    <th>
+                                        Rank Score
+                                    </th>
+
+                                    <th>
+                                        Trend
+                                    </th>
+
+                                    <th>
+                                        Momentum
+                                    </th>
+
+                                    <th>
+                                        Volume
+                                    </th>
+
+                                    <th>
+                                        RSI
+                                    </th>
+
+                                    <th>
+                                        Relative Strength
+                                    </th>
+
+                                    <th>
+                                        Final Status
+                                    </th>
+
+                                    <th>
+                                        Detail
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody id="sectorStockTableBody">
+
+                                <tr>
+
+                                    <td
+                                        colspan="12"
+                                        class="empty-state-cell"
+                                    >
+                                        Tap any Top 10 Sector above to view
+                                        its Top 10 ranked stocks.
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================================== -->
+            <!-- SEARCH -->
+            <!-- ================================================== -->
+
+            <section class="search-section">
+
+                <div class="search-panel">
+
+                    <div class="search-copy">
+
+                        <p class="eyebrow">
+                            TECHNICAL STOCK SEARCH
+                        </p>
+
+                        <h2>
+                            Search NSE sector stock
+                        </h2>
+
+                        <p>
+                            Search by company name, stock symbol or sector
+                            and open complete technical analysis.
+                        </p>
+
+                    </div>
+
+
+                    <div class="search-box-wrap">
+
+                        <input
+                            id="stockSearchInput"
+                            class="stock-search-input"
+                            type="search"
+                            placeholder="Search stock name, symbol or sector"
+                            autocomplete="off"
+                            aria-label="Search NSE sector stocks"
+                        >
+
+
+                        <button
+                            id="clearSearchButton"
+                            type="button"
+                            class="search-clear-button"
+                            aria-label="Clear search"
+                        >
+                            ×
+                        </button>
+
+
+                        <div
+                            id="searchResults"
+                            class="search-results"
+                            hidden
+                        ></div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================================== -->
+            <!-- STRONG BUY FILTERS -->
+            <!-- ================================================== -->
+
+            <section class="filter-section">
+
+                <div class="filter-grid">
+
+                    <label class="filter-field">
+
+                        <span>
+                            Sector
+                        </span>
+
+                        <select id="sectorFilter">
+
+                            <option value="">
+                                All Top Sectors
+                            </option>
+
+                            {% for sector in sectors %}
+
+                                <option value="{{ sector }}">
+                                    {{ sector }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </label>
+
+
+                    <label class="filter-field">
+
+                        <span>
+                            Minimum Technical Score
+                        </span>
+
+                        <select id="technicalScoreFilter">
+
+                            <option value="">
+                                80+ Default
+                            </option>
+
+                            <option value="80">
+                                80+
+                            </option>
+
+                            <option value="85">
+                                85+
+                            </option>
+
+                            <option value="90">
+                                90+
+                            </option>
+
+                            <option value="95">
+                                95+
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label class="filter-field">
+
+                        <span>
+                            Chart Pattern
+                        </span>
+
+                        <select id="patternFilter">
+
+                            <option value="">
+                                Any Pattern
+                            </option>
+
+                            <option value="Cup and Handle">
+                                Cup and Handle
+                            </option>
+
+                            <option value="Ascending Triangle">
+                                Ascending Triangle
+                            </option>
+
+                            <option value="Symmetrical Triangle">
+                                Symmetrical Triangle
+                            </option>
+
+                            <option value="Flag and Pole">
+                                Flag and Pole
+                            </option>
+
+                            <option value="Double Bottom">
+                                Double Bottom
+                            </option>
+
+                            <option value="Inverse Head and Shoulders">
+                                Inverse Head and Shoulders
+                            </option>
+
+                            <option value="Falling Wedge">
+                                Falling Wedge
+                            </option>
+
+                            <option value="Rectangle Breakout">
+                                Rectangle Breakout
+                            </option>
+
+                            <option value="Rounded Bottom">
+                                Rounded Bottom
+                            </option>
+
+                            <option value="Consolidation Breakout">
+                                Consolidation Breakout
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <button
+                        id="resetFiltersButton"
+                        type="button"
+                        class="secondary-button filter-reset-button"
+                    >
+                        Reset Filters
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================================== -->
+            <!-- FINAL STRONG BUY RESULTS -->
+            <!-- ================================================== -->
+
+            <section class="results-section">
+
+                <div class="section-heading result-heading">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            VERIFIED TECHNICAL SIGNALS
+                        </p>
+
+                        <h2>
+                            Strong Buy Stocks
+                        </h2>
+
+                    </div>
+
+
+                    <div class="section-meta">
+
+                        <span id="resultCount">
+                            {{ initial_results|length }} stocks
+                        </span>
+
+                        <strong id="signalsUpdatedAt">
+                            Waiting for scan
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="strong-buy-note">
+
+                    Only stocks that pass the complete Eagle technical
+                    Strong Buy conditions are shown below.
+
+                </div>
+
+
+                <div class="table-card">
+
+                    <div class="table-scroll">
+
+                        <table class="signal-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Stock
+                                    </th>
+
+                                    <th>
+                                        Sector
+                                    </th>
+
+                                    <th>
+                                        Current Price
+                                    </th>
+
+                                    <th>
+                                        Entry
+                                    </th>
+
+                                    <th>
+                                        Stop Loss
+                                    </th>
+
+                                    <th>
+                                        Target
+                                    </th>
+
+                                    <th>
+                                        R:R
+                                    </th>
+
+                                    <th>
+                                        Technical Score
+                                    </th>
+
+                                    <th>
+                                        Chart Pattern
+                                    </th>
+
+                                    <th>
+                                        Candlestick
+                                    </th>
+
+                                    <th>
+                                        Signal
+                                    </th>
+
+                                    <th>
+                                        Detail
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody id="signalTableBody">
+
+                                {% if initial_results %}
+
+                                    {% for item in initial_results %}
+
+                                        <tr>
+
+                                            <td>
+
+                                                <strong>
+                                                    {{ item.company_name or item.symbol }}
+                                                </strong>
+
+                                                <small>
+                                                    {{ item.symbol }}
+                                                </small>
+
+                                            </td>
+
+
+                                            <td>
+                                                {{ item.sector }}
+                                            </td>
+
+
+                                            <td>
+                                                ₹{{ "%.2f"|format(item.current_price or 0) }}
+                                            </td>
+
+
+                                            <td>
+                                                ₹{{ "%.2f"|format(item.entry_price or 0) }}
+                                            </td>
+
+
+                                            <td>
+                                                ₹{{ "%.2f"|format(item.stop_loss or 0) }}
+                                            </td>
+
+
+                                            <td>
+                                                ₹{{ "%.2f"|format(item.target_price or 0) }}
+                                            </td>
+
+
+                                            <td>
+                                                {{ "%.2f"|format(item.risk_reward or 0) }}
+                                            </td>
+
+
+                                            <td>
+
+                                                <strong class="technical-score">
+                                                    {{ "%.2f"|format(item.technical_score or 0) }}
+                                                </strong>
+
+                                            </td>
+
+
+                                            <td>
+                                                {{ item.chart_pattern or "—" }}
+                                            </td>
+
+
+                                            <td>
+                                                {{ item.candlestick_pattern or "—" }}
+                                            </td>
+
+
+                                            <td>
+
+                                                <span class="signal-badge strong-buy">
+                                                    STRONG BUY
+                                                </span>
+
+                                            </td>
+
+
+                                            <td>
+
+                                                <button
+                                                    type="button"
+                                                    class="detail-button"
+                                                    data-symbol="{{ item.symbol }}"
+                                                >
+                                                    View
+                                                </button>
+
+                                            </td>
+
+                                        </tr>
+
+                                    {% endfor %}
+
+                                {% else %}
+
+                                    <tr>
+
+                                        <td
+                                            colspan="12"
+                                            class="empty-state-cell"
+                                        >
+                                            No confirmed Strong Buy setup
+                                            is available yet.
+                                        </td>
+
+                                    </tr>
+
+                                {% endif %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================================================== -->
+            <!-- DETAIL DRAWER -->
+            <!-- ================================================== -->
+
+            <aside
+                id="detailDrawer"
+                class="detail-drawer"
+                aria-hidden="true"
+            >
+
+                <div class="detail-drawer-backdrop"></div>
+
+
+                <div class="detail-drawer-panel">
+
+                    <div class="detail-drawer-header">
+
+                        <div>
+
+                            <p class="eyebrow">
+                                COMPLETE TECHNICAL ANALYSIS
+                            </p>
+
+                            <h2 id="detailDrawerTitle">
+                                Stock Detail
+                            </h2>
+
+                        </div>
+
+
+                        <button
+                            id="closeDetailDrawer"
+                            type="button"
+                            class="drawer-close-button"
+                            aria-label="Close detail"
+                        >
+                            ×
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        id="detailDrawerContent"
+                        class="detail-drawer-content"
+                    >
+
+                        <div class="detail-loading">
+                            Select a stock to view complete
+                            technical analysis.
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </aside>
+
+        </main>
+
+
+        <!-- ================================================== -->
+        <!-- FOOTER -->
+        <!-- ================================================== -->
+
+        <footer class="dashboard-footer">
+
+            <div>
+
+                <strong>
+                    {{ app_name }}
+                </strong>
+
+                <span>
+                    Version {{ app_version }}
+                </span>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Technical research tool only
+                </span>
+
+                <a href="{{ url_for('privacy') }}">
+                    Privacy & Disclaimer
+                </a>
+
+            </div>
+
+        </footer>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- JAVASCRIPT CONFIG -->
+    <!-- ================================================== -->
+
+    <script>
+
+        window.EAGLE_CONFIG = {
+
+            initialMode:
+                {{ mode|tojson }},
+
+            initialTimeframe:
+                {{ mode|tojson }},
+
+            technicalScoreMinimum:
+                80,
+
+            api: {
+
+                indices:
+                    {{ url_for('api_indices')|tojson }},
+
+                signals:
+                    {{ url_for('api_signals')|tojson }},
+
+                search:
+                    {{ url_for('api_search')|tojson }},
+
+                scanStatus:
+                    {{ url_for('api_scan_status')|tojson }},
+
+                scanRefresh:
+                    {{ url_for('api_scan_refresh')|tojson }},
+
+                topSectors:
+                    {{ url_for('api_top_sectors')|tojson }},
+
+                sectors:
+                    {{ url_for('api_sectors')|tojson }},
+
+                sectorStocks:
+                    {{ url_for('api_sector_stocks_query')|tojson }},
+
+                stockDetailBase:
+                    "/api/stock/"
+
+            }
+        };
+
+    </script>
+
+
+    <script
+        src="{{ url_for('static', filename='js/dashboard.js') }}"
+        defer
+    ></script>
+
+
+    <script
+        src="{{ url_for('static', filename='js/stock_search.js') }}"
+        defer
+    ></script>
+
+
+    <script
+        src="{{ url_for('static', filename='js/auto_refresh.js') }}"
+        defer
+    ></script>
+
+</body>
+</html>
