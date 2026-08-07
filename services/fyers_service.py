@@ -1249,301 +1249,75 @@ class FyersService:
 
     @staticmethod
     def _history_date_range(
-        *,
-        mode: str,
-        resolution: str,
-    ) -> tuple[str, str]:
-        normalized_mode = (
-            Config.normalize_trading_mode(
-                mode
-            )
+    *,
+    mode: str,
+    resolution: str,
+) -> tuple[str, str]:
+
+    normalized_mode = (
+        Config.normalize_trading_mode(
+            mode
         )
+    )
 
-        today = (
-            datetime.now(
-                timezone.utc
-            )
-            .date()
+    today = (
+        datetime.now(
+            timezone.utc
         )
+        .date()
+    )
 
-        clean_resolution = (
-            clean_text(
-                resolution
-            )
-            .upper()
+    clean_resolution = (
+        clean_text(
+            resolution
         )
+        .upper()
+    )
 
-        if (
-            normalized_mode
-            == Config.MODE_INTRADAY
-        ):
-            if clean_resolution == "5":
-                calendar_days = 30
+    # ======================================================
+    # INTRADAY
+    # ======================================================
 
-            elif clean_resolution == "15":
-                calendar_days = 60
+    if (
+        normalized_mode
+        == Config.MODE_INTRADAY
+    ):
 
-            elif clean_resolution == "D":
-                calendar_days = 420
+        if clean_resolution == "5":
+            calendar_days = 30
 
-            else:
-                calendar_days = 60
+        elif clean_resolution == "15":
+            calendar_days = 60
+
+        elif clean_resolution == "D":
+            calendar_days = 365
 
         else:
-            calendar_days = 550
+            calendar_days = 60
 
-        start_date = (
-            today
-            - timedelta(
-                days=(
-                    calendar_days
-                )
-            )
+    # ======================================================
+    # SWING
+    # ======================================================
+
+    else:
+        # Around 250 trading candles are normally
+        # available inside 365 calendar days.
+        # Enough for EMA-200 and technical analysis.
+        calendar_days = 365
+
+    start_date = (
+        today
+        - timedelta(
+            days=calendar_days
         )
+    )
 
-        return (
-            start_date.isoformat(),
-            today.isoformat(),
-        )
+    return (
+        start_date.isoformat(),
+        today.isoformat(),
+    )                
+                        
 
-    # ==========================================================
-    # MODE-BASED CANDLES
-    # ==========================================================
-
-    def get_mode_candles(
-        self,
-        access_token: str,
-        *,
-        symbol: str,
-        mode: str,
-    ) -> dict[str, Any]:
-        normalized_mode = (
-            Config.normalize_trading_mode(
-                mode
-            )
-        )
-
-        normalized_symbol = (
-            normalize_symbol(
-                symbol
-            )
-        )
-
-        if not normalized_symbol:
-            raise ValueError(
-                (
-                    "A valid stock symbol "
-                    "is required."
-                )
-            )
-
-        # ======================================================
-        # INTRADAY
-        # ======================================================
-
-        if (
-            normalized_mode
-            == Config.MODE_INTRADAY
-        ):
-            primary_resolution = (
-                Config
-                .INTRADAY_PRIMARY_RESOLUTION
-            )
-
-            confirmation_resolution = (
-                Config
-                .INTRADAY_CONFIRMATION_RESOLUTION
-            )
-
-            higher_resolution = (
-                Config
-                .INTRADAY_HIGHER_TIMEFRAME_RESOLUTION
-            )
-
-            (
-                primary_from,
-                primary_to,
-            ) = (
-                self._history_date_range(
-                    mode=(
-                        normalized_mode
-                    ),
-                    resolution=(
-                        primary_resolution
-                    ),
-                )
-            )
-
-            (
-                confirmation_from,
-                confirmation_to,
-            ) = (
-                self._history_date_range(
-                    mode=(
-                        normalized_mode
-                    ),
-                    resolution=(
-                        confirmation_resolution
-                    ),
-                )
-            )
-
-            (
-                higher_from,
-                higher_to,
-            ) = (
-                self._history_date_range(
-                    mode=(
-                        normalized_mode
-                    ),
-                    resolution=(
-                        higher_resolution
-                    ),
-                )
-            )
-
-            primary_candles = (
-                self.get_candles(
-                    access_token,
-                    symbol=(
-                        normalized_symbol
-                    ),
-                    resolution=(
-                        primary_resolution
-                    ),
-                    range_from=(
-                        primary_from
-                    ),
-                    range_to=(
-                        primary_to
-                    ),
-                )
-            )
-
-            confirmation_candles = (
-                self.get_candles(
-                    access_token,
-                    symbol=(
-                        normalized_symbol
-                    ),
-                    resolution=(
-                        confirmation_resolution
-                    ),
-                    range_from=(
-                        confirmation_from
-                    ),
-                    range_to=(
-                        confirmation_to
-                    ),
-                )
-            )
-
-            higher_candles = (
-                self.get_candles(
-                    access_token,
-                    symbol=(
-                        normalized_symbol
-                    ),
-                    resolution=(
-                        higher_resolution
-                    ),
-                    range_from=(
-                        higher_from
-                    ),
-                    range_to=(
-                        higher_to
-                    ),
-                )
-            )
-
-            return {
-                "symbol": (
-                    normalized_symbol
-                ),
-                "mode": (
-                    normalized_mode
-                ),
-                "primary_resolution": (
-                    primary_resolution
-                ),
-                "confirmation_resolution": (
-                    confirmation_resolution
-                ),
-                "higher_resolution": (
-                    higher_resolution
-                ),
-                "primary": (
-                    primary_candles
-                ),
-                "confirmation": (
-                    confirmation_candles
-                ),
-                "higher_timeframe": (
-                    higher_candles
-                ),
-            }
-
-        # ======================================================
-        # SWING
-        # ======================================================
-
-        primary_resolution = (
-            Config
-            .SWING_PRIMARY_RESOLUTION
-        )
-
-        (
-            range_from,
-            range_to,
-        ) = (
-            self._history_date_range(
-                mode=(
-                    normalized_mode
-                ),
-                resolution=(
-                    primary_resolution
-                ),
-            )
-        )
-
-        daily_candles = (
-            self.get_candles(
-                access_token,
-                symbol=(
-                    normalized_symbol
-                ),
-                resolution=(
-                    primary_resolution
-                ),
-                range_from=(
-                    range_from
-                ),
-                range_to=(
-                    range_to
-                ),
-            )
-        )
-
-        return {
-            "symbol": (
-                normalized_symbol
-            ),
-            "mode": (
-                normalized_mode
-            ),
-            "primary_resolution": (
-                primary_resolution
-            ),
-            "confirmation_resolution": (
-                "weekly_from_daily"
-            ),
-            "primary": (
-                daily_candles
-            ),
-            "confirmation_source": (
-                daily_candles
-            ),
-        }
 
     # ==========================================================
     # LIVE PRICE
