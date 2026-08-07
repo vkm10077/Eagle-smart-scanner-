@@ -309,8 +309,7 @@ F = TypeVar(
 # ACCESS TOKEN
 # ==========================================================
 
-def get_access_token(
-) -> str:
+def get_access_token() -> str:
 
     token = clean_text(
         session.get(
@@ -319,6 +318,15 @@ def get_access_token(
     )
 
     if token:
+        # Render restart/redeploy ke baad
+        # background scanner ke liye token
+        # dobara shared cache me save karo.
+        cache_service.set(
+            ACCESS_TOKEN_CACHE_KEY,
+            token,
+            ttl_seconds=12 * 60 * 60,
+        )
+
         return token
 
     return clean_text(
