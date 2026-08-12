@@ -620,41 +620,62 @@ class IndexService:
     # ==========================================================
 
     def _fetch_symbol_batch(
-        self,
-        access_token: str,
-        symbols: Iterable[str],
-    ) -> list[dict[str, Any]]:
-        clean_symbols: list[str] = []
+    self,
+    access_token: str,
+    symbols: Iterable[str],
+) -> list[dict[str, Any]]:
+    """
+    Fetch FYERS quotes safely.
 
-        for symbol in symbols:
-            normalized = (
-                self._normalize_full_symbol(
-                    symbol
-                )
+    Strategy:
+    1. Clean and deduplicate symbols.
+    2. Try one efficient batch request.
+    3. If FYERS rejects the batch, retry each symbol individually.
+    4. Skip only the bad/unavailable symbol.
+    5. Never generate dummy/estimated market data.
+    """
+
+    clean_symbols: list[str] = []
+
+    for symbol in symbols:
+        normalized = self._normalize_full_symbol(
+            symbol
+        )
+
+        if (
+            normalized
+            and normalized not in clean_symbols
+        ):
+            clean_symbols.append(
+                normalized
             )
 
-            if (
-                normalized
-                and normalized
-                not in clean_symbols
-            ):
-                clean_symbols.append(
-                    normalized
-                )
+    if not clean_symbols:
+        return []
 
-        if not clean_symbols:
-            return []
+    # ======================================================
+    # FIRST ATTEMPT: BATCH REQUEST
+    # ======================================================
 
-        started_at = utc_now()
+    started_at = utc_now()
 
-        response = self.fyers_service.get_quotes(
-            access_token,
-            clean_symbols,
+    try:
+        response = (
+            self.fyers_service.get_quotes(
+                access_token,
+                clean_symbols,
+            )
         )
 
         duration_ms = (
             utc_now() - started_at
         ).total_seconds() * 1000
+
+        quote_items = (
+            self._extract_quote_items(
+                response
+            )
+        )
 
         log_api_call(
             logger,
@@ -667,9 +688,231 @@ class IndexService:
             ),
         )
 
-        return self._extract_quote_items(
-            response
+        logger.info(
+            (
+                "FYERS index batch quote "
+                "success | requested=%s | "
+                "received=%s"
+            ),
+            len(clean_symbols),
+            len(quote_items),
+            extra=build_log_extra(
+                component="index_service",
+                event=(
+                    "index_batch_success"
+                ),
+                status="success",
+                requested_symbols=(
+                    len(clean_symbols)
+                ),
+                received_quotes=(
+                    len(quote_items)
+                ),
+            ),
         )
+
+        return quote_items
+
+    except FyersAuthenticationError:
+        # Authentication problems should not
+        # be hidden by individual retries.
+        raise
+
+    except Exception as batch_exception:
+        duration_ms = (
+            utc_now() - started_at
+        ).total_seconds() * 1000
+
+        logger.warning(
+            (
+                "FYERS index batch quote "
+                "failed; switching to "
+                "individual-symbol fallback | "
+                "symbols=%s | error=%s"
+            ),
+            clean_symbols,
+            batch_exception,
+            extra=build_log_extra(
+                component="index_service",
+                event=(
+                    "index_batch_fallback"
+                ),
+                status="warning",
+                requested_symbols=(
+                    len(clean_symbols)
+                ),
+                duration_ms=round(
+                    duration_ms,
+                    2,
+                ),
+                error=str(
+                    batch_exception
+                ),
+            ),
+        )
+
+    # ======================================================
+    # FALLBACK: ONE SYMBOL AT A TIME
+    # ======================================================
+
+    collected_items: list[
+        dict[str, Any]
+    ] = []
+
+    successful_symbols: list[str] = []
+    failed_symbols: list[str] = []
+
+    for symbol in clean_symbols:
+        symbol_started_at = utc_now()
+
+        try:
+            response = (
+                self.fyers_service.get_quotes(
+                    access_token,
+                    [symbol],
+                )
+            )
+
+            symbol_duration_ms = (
+                utc_now() - symbol_started_at
+            ).total_seconds() * 1000
+
+            quote_items = (
+                self._extract_quote_items(
+                    response
+                )
+            )
+
+            if not quote_items:
+                failed_symbols.append(
+                    symbol
+                )
+
+                logger.warning(
+                    (
+                        "FYERS returned no "
+                        "quote data for index "
+                        "symbol | symbol=%s"
+                    ),
+                    symbol,
+                    extra=build_log_extra(
+                        component=(
+                            "index_service"
+                        ),
+                        event=(
+                            "index_symbol_empty"
+                        ),
+                        status="warning",
+                        candidate_symbol=(
+                            symbol
+                        ),
+                    ),
+                )
+
+                continue
+
+            collected_items.extend(
+                quote_items
+            )
+
+            successful_symbols.append(
+                symbol
+            )
+
+            log_api_call(
+                logger,
+                service="index_service",
+                endpoint="quotes",
+                status="success",
+                duration_ms=(
+                    symbol_duration_ms
+                ),
+                requested_symbols=1,
+            )
+
+            logger.info(
+                (
+                    "FYERS individual index "
+                    "quote success | "
+                    "symbol=%s"
+                ),
+                symbol,
+                extra=build_log_extra(
+                    component="index_service",
+                    event=(
+                        "index_symbol_success"
+                    ),
+                    status="success",
+                    candidate_symbol=(
+                        symbol
+                    ),
+                ),
+            )
+
+        except FyersAuthenticationError:
+            raise
+
+        except Exception as symbol_exception:
+            failed_symbols.append(
+                symbol
+            )
+
+            logger.warning(
+                (
+                    "FYERS index symbol "
+                    "failed and was skipped | "
+                    "symbol=%s | error=%s"
+                ),
+                symbol,
+                symbol_exception,
+                extra=build_log_extra(
+                    component="index_service",
+                    event=(
+                        "index_symbol_failed"
+                    ),
+                    status="warning",
+                    candidate_symbol=(
+                        symbol
+                    ),
+                    error=str(
+                        symbol_exception
+                    ),
+                ),
+            )
+
+    # ======================================================
+    # FALLBACK SUMMARY
+    # ======================================================
+
+    logger.info(
+        (
+            "FYERS index fallback completed | "
+            "success=%s | failed=%s | "
+            "quotes=%s"
+        ),
+        successful_symbols,
+        failed_symbols,
+        len(collected_items),
+        extra=build_log_extra(
+            component="index_service",
+            event=(
+                "index_fallback_complete"
+            ),
+            status=(
+                "success"
+                if collected_items
+                else "failed"
+            ),
+            successful_count=(
+                len(successful_symbols)
+            ),
+            failed_count=(
+                len(failed_symbols)
+            ),
+        ),
+    )
+
+    return collected_items
 
     def _fetch_primary_indices(
         self,
