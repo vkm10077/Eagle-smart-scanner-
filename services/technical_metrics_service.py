@@ -1575,11 +1575,9 @@ class TechnicalMetricsService:
 # GLOBAL INSTANCE
 # ============================================================
 
-
 _global_technical_metrics_service: (
     TechnicalMetricsService | None
 ) = None
-
 
 _global_technical_metrics_lock = (
     __import__(
@@ -1593,32 +1591,25 @@ _global_technical_metrics_lock = (
 # GET SERVICE
 # ============================================================
 
-
 def get_technical_metrics_service(
 ) -> TechnicalMetricsService:
 
-    global (
-        _global_technical_metrics_service
-    )
+    global _global_technical_metrics_service
 
     if (
         _global_technical_metrics_service
         is not None
     ):
-
         return (
             _global_technical_metrics_service
         )
 
-    with (
-        _global_technical_metrics_lock
-    ):
+    with _global_technical_metrics_lock:
 
         if (
             _global_technical_metrics_service
             is None
         ):
-
             _global_technical_metrics_service = (
                 TechnicalMetricsService()
             )
