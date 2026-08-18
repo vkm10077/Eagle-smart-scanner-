@@ -2237,35 +2237,32 @@ class FyersService:
 
         return result
 
-
 # ============================================================
 # GLOBAL INSTANCE
 # ============================================================
 
-
 _global_fyers_service: (
-    FyersService
-    | None
+    FyersService | None
 ) = None
-
 
 _global_fyers_lock = (
     threading.Lock()
 )
 
 
+# ============================================================
+# GET FYERS SERVICE
+# ============================================================
+
 def get_fyers_service(
 ) -> FyersService:
 
-    global (
-        _global_fyers_service
-    )
+    global _global_fyers_service
 
     if (
         _global_fyers_service
         is not None
     ):
-
         return (
             _global_fyers_service
         )
@@ -2276,7 +2273,6 @@ def get_fyers_service(
             _global_fyers_service
             is None
         ):
-
             _global_fyers_service = (
                 FyersService()
             )
