@@ -1330,3 +1330,17 @@ class Config:
         return (
             cls.SWING_SCAN_RESULTS_FILE
         )
+
+# =========================================================
+# FYERS LIVE WEBSOCKET
+# =========================================================
+
+FYERS_WEBSOCKET_ENABLED = _boolean(
+    "FYERS_WEBSOCKET_ENABLED",
+    True,
+)
+
+FYERS_WEBSOCKET_SYMBOLS = [
+    "NSE:NIFTY50-INDEX",
+    "NSE:NIFTYBANK-INDEX",
+]
