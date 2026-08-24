@@ -1335,10 +1335,19 @@ class Config:
 # FYERS LIVE WEBSOCKET
 # =========================================================
 
-FYERS_WEBSOCKET_ENABLED = _boolean(
-    "FYERS_WEBSOCKET_ENABLED",
-    True,
-)
+FYERS_WEBSOCKET_ENABLED = str(
+    os.getenv(
+        "FYERS_WEBSOCKET_ENABLED",
+        "true",
+    )
+).strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+    "enabled",
+}
+
 
 FYERS_WEBSOCKET_SYMBOLS = [
     "NSE:NIFTY50-INDEX",
