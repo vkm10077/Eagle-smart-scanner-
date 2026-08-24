@@ -86,6 +86,19 @@ logger = get_logger(
     "app"
 )
 
+try:
+    from services.fyers_websocket_service import (
+        get_live_market_snapshot,
+        get_market_websocket_status,
+        start_market_websocket,
+        stop_market_websocket,
+    )
+except ImportError:
+    get_live_market_snapshot = None
+    get_market_websocket_status = None
+    start_market_websocket = None
+    stop_market_websocket = None
+
 
 # ============================================================
 # FLASK APPLICATION
