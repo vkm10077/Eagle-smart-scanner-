@@ -2807,6 +2807,777 @@ def api_sector_stocks_query():
         )
 
 # ============================================================
+# DASHBOARD COMPATIBILITY APIs
+# ============================================================
+
+@app.route("/api/indices", methods=["GET"])
+@login_required
+def api_indices():
+    """
+    Live index data for dashboard.
+
+    Primary source:
+    FYERS WebSocket live market snapshot.
+
+    No fake/demo prices are generated here.
+    """
+    try:
+        validate_fyers_session()
+        ensure_market_websocket()
+
+        snapshot = get_live_market_snapshot()
+
+        if isinstance(snapshot, dict):
+            market_data = (
+                snapshot.get("indices")
+                or snapshot.get("market_data")
+                or snapshot.get("data")
+                or snapshot
+            )
+        else:
+            market_data = {}
+
+        return jsonify(
+            {
+                "success": True,
+                "indices": serialize_value(market_data),
+                "market_data": serialize_value(market_data),
+                "websocket": get_market_websocket_status(),
+                "timestamp": now_iso(),
+            }
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Indices API failed"
+        )
+
+        if is_auth_error(exc):
+            stop_live_market(
+                clear_market_data=True
+            )
+            remove_access_token()
+
+            return api_error(
+                "FYERS session invalid/expired. Login again.",
+                401,
+                "invalid_fyers_session",
+            )
+
+        return api_error(
+            str(exc),
+            500,
+            "indices_failed",
+            exc,
+        )
+
+
+@app.route("/api/signals", methods=["GET"])
+@login_required
+def api_signals():
+    """
+    Dashboard Strong Buy signal feed.
+
+    Uses already persisted Eagle scan results.
+    It does NOT start a fresh heavy scan.
+    """
+    mode = normalize_mode(
+        request.args.get("mode")
+        or request.args.get("timeframe")
+    )
+
+    try:
+        validate_fyers_session()
+        ensure_market_websocket()
+
+        payload = load_results(mode)
+
+        raw_results = payload.get(
+            "results",
+            [],
+        )
+
+        if not isinstance(
+            raw_results,
+            list,
+        ):
+            raw_results = []
+
+        # Dashboard final table intentionally shows
+        # STRONG BUY only.
+        strong_results = [
+            item
+            for item in raw_results
+            if str(
+                item.get("signal", "")
+                if isinstance(item, dict)
+                else getattr(
+                    item,
+                    "signal",
+                    "",
+                )
+            ).strip().upper()
+            == "STRONG BUY"
+        ]
+
+        try:
+            sectors = get_sector_scanner().scan(
+                top_n=Config.TOP_SECTORS_COUNT
+            )
+        except Exception:
+            logger.exception(
+                "Top sector refresh failed in signals API"
+            )
+            sectors = []
+
+        top_sectors = []
+
+        for sector in sectors:
+            item = serialize_value(
+                sector
+            )
+
+            if not isinstance(
+                item,
+                dict,
+            ):
+                continue
+
+            top_sectors.append(
+                {
+                    **item,
+                    "sector": (
+                        item.get("sector")
+                        or item.get("sector_name")
+                        or item.get("name")
+                        or item.get("sector_key")
+                        or ""
+                    ),
+                    "score": (
+                        item.get("score")
+                        or item.get("sector_score")
+                        or item.get("technical_score")
+                        or 0
+                    ),
+                }
+            )
+
+        with _state_lock:
+            mode_state = dict(
+                _scan_state.get(
+                    mode,
+                    {},
+                )
+            )
+
+        scanner_status = {
+            **mode_state,
+            "stage": (
+                "scanning"
+                if mode_state.get("running")
+                else "idle"
+            ),
+            "progress_percent": (
+                50
+                if mode_state.get("running")
+                else 100
+                if payload.get("completed_at")
+                else 0
+            ),
+            "sector_count": len(
+                top_sectors
+            ),
+            "candidate_count": int(
+                payload.get(
+                    "stocks_ranked",
+                    0,
+                )
+                or 0
+            ),
+            "common_count": len(
+                raw_results
+            ),
+            "strong_buy_count": len(
+                strong_results
+            ),
+        }
+
+        return jsonify(
+            {
+                "success": True,
+                "mode": mode,
+                "results": serialize_value(
+                    strong_results
+                ),
+                "top_sectors": top_sectors,
+                "candidate_count": scanner_status[
+                    "candidate_count"
+                ],
+                "common_count": scanner_status[
+                    "common_count"
+                ],
+                "strong_buy_count": len(
+                    strong_results
+                ),
+                "scanner_status": scanner_status,
+                "generated_at": (
+                    payload.get(
+                        "completed_at"
+                    )
+                    or now_iso()
+                ),
+                "websocket": get_market_websocket_status(),
+                "timestamp": now_iso(),
+            }
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Signals API failed"
+        )
+
+        if is_auth_error(exc):
+            stop_live_market(
+                clear_market_data=True
+            )
+            remove_access_token()
+
+            return api_error(
+                "FYERS session invalid/expired. Login again.",
+                401,
+                "invalid_fyers_session",
+            )
+
+        return api_error(
+            str(exc),
+            500,
+            "signals_failed",
+            exc,
+        )
+
+
+@app.route("/api/scanner/status", methods=["GET"])
+@login_required
+def api_scan_status():
+    mode = normalize_mode(
+        request.args.get("mode")
+        or request.args.get("timeframe")
+    )
+
+    payload = load_results(
+        mode
+    )
+
+    results = payload.get(
+        "results",
+        [],
+    )
+
+    if not isinstance(
+        results,
+        list,
+    ):
+        results = []
+
+    strong_buy_count = sum(
+        1
+        for item in results
+        if str(
+            item.get("signal", "")
+            if isinstance(item, dict)
+            else getattr(
+                item,
+                "signal",
+                "",
+            )
+        ).strip().upper()
+        == "STRONG BUY"
+    )
+
+    with _state_lock:
+        state_data = dict(
+            _scan_state.get(
+                mode,
+                {},
+            )
+        )
+
+    running = bool(
+        state_data.get(
+            "running"
+        )
+    )
+
+    scanner = {
+        **state_data,
+        "mode": mode,
+        "stage": (
+            "scanning"
+            if running
+            else (
+                "completed"
+                if payload.get(
+                    "completed_at"
+                )
+                else "idle"
+            )
+        ),
+        "progress_percent": (
+            50
+            if running
+            else 100
+            if payload.get(
+                "completed_at"
+            )
+            else 0
+        ),
+        "sector_count": int(
+            payload.get(
+                "sectors_selected",
+                0,
+            )
+            or 0
+        ),
+        "candidate_count": int(
+            payload.get(
+                "stocks_ranked",
+                0,
+            )
+            or 0
+        ),
+        "common_count": len(
+            results
+        ),
+        "strong_buy_count": (
+            strong_buy_count
+        ),
+    }
+
+    return jsonify(
+        {
+            "success": True,
+            "scanner": scanner,
+            "scanner_status": scanner,
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.route("/api/top-sectors", methods=["GET"])
+@login_required
+def api_top_sectors():
+    try:
+        validate_fyers_session()
+        ensure_market_websocket()
+
+        sectors = get_sector_scanner().scan(
+            top_n=Config.TOP_SECTORS_COUNT
+        )
+
+        output = []
+
+        for sector in sectors:
+            item = serialize_value(
+                sector
+            )
+
+            if not isinstance(
+                item,
+                dict,
+            ):
+                continue
+
+            output.append(
+                {
+                    **item,
+                    "sector": (
+                        item.get("sector")
+                        or item.get("sector_name")
+                        or item.get("name")
+                        or item.get("sector_key")
+                        or ""
+                    ),
+                    "score": (
+                        item.get("score")
+                        or item.get("sector_score")
+                        or item.get("technical_score")
+                        or 0
+                    ),
+                }
+            )
+
+        return jsonify(
+            {
+                "success": True,
+                "count": len(
+                    output
+                ),
+                "top_sectors": output,
+                "sectors": output,
+                "timestamp": now_iso(),
+            }
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Top sectors API failed"
+        )
+
+        if is_auth_error(exc):
+            stop_live_market(
+                clear_market_data=True
+            )
+            remove_access_token()
+
+            return api_error(
+                "FYERS session invalid/expired. Login again.",
+                401,
+                "invalid_fyers_session",
+            )
+
+        return api_error(
+            str(exc),
+            500,
+            "top_sectors_failed",
+            exc,
+        )
+
+
+@app.route("/api/sector-stocks", methods=["GET"])
+@login_required
+def api_sector_stocks_query():
+    """
+    Return Top N technically ranked stocks for
+    one selected Top-10 sector.
+
+    Important:
+    These are ranking results, not automatically
+    Strong Buy signals.
+    """
+    sector_query = str(
+        request.args.get(
+            "sector",
+            "",
+        )
+    ).strip()
+
+    mode = normalize_mode(
+        request.args.get("mode")
+        or request.args.get("timeframe")
+    )
+
+    try:
+        limit = int(
+            request.args.get(
+                "limit",
+                Config.TOP_STOCKS_PER_SECTOR,
+            )
+        )
+    except (
+        TypeError,
+        ValueError,
+    ):
+        limit = Config.TOP_STOCKS_PER_SECTOR
+
+    limit = max(
+        1,
+        min(
+            limit,
+            Config.TOP_STOCKS_PER_SECTOR,
+        ),
+    )
+
+    if not sector_query:
+        return api_error(
+            "Sector is required.",
+            400,
+            "sector_required",
+        )
+
+    try:
+        validate_fyers_session()
+        ensure_market_websocket()
+
+        sectors = get_sector_scanner().scan(
+            top_n=Config.TOP_SECTORS_COUNT
+        )
+
+        selected_sector = None
+
+        query_lower = (
+            sector_query
+            .strip()
+            .lower()
+        )
+
+        for sector in sectors:
+            sector_data = serialize_value(
+                sector
+            )
+
+            if not isinstance(
+                sector_data,
+                dict,
+            ):
+                continue
+
+            possible_names = {
+                str(
+                    sector_data.get(
+                        "sector",
+                        ""
+                    )
+                ).strip().lower(),
+                str(
+                    sector_data.get(
+                        "sector_name",
+                        ""
+                    )
+                ).strip().lower(),
+                str(
+                    sector_data.get(
+                        "name",
+                        ""
+                    )
+                ).strip().lower(),
+                str(
+                    sector_data.get(
+                        "sector_key",
+                        ""
+                    )
+                ).strip().lower(),
+            }
+
+            if query_lower in possible_names:
+                selected_sector = sector
+                break
+
+        if selected_sector is None:
+            return api_error(
+                (
+                    f"Sector '{sector_query}' "
+                    "is not currently present in the Top sectors."
+                ),
+                404,
+                "sector_not_found",
+            )
+
+        ranked = get_stock_ranker().rank_sector(
+            selected_sector,
+            top_n=limit,
+        )
+
+        ranked = [
+            stock
+            for stock in ranked
+            if getattr(
+                stock,
+                "eligible",
+                True,
+            )
+        ][:limit]
+
+        websocket_symbols = [
+            getattr(
+                stock,
+                "fyers_symbol",
+                "",
+            )
+            for stock in ranked
+            if getattr(
+                stock,
+                "fyers_symbol",
+                "",
+            )
+        ]
+
+        if websocket_symbols:
+            ensure_market_websocket(
+                websocket_symbols
+            )
+
+        # Existing final scan is used only to mark
+        # whether a ranked stock has already qualified.
+        saved_payload = load_results(
+            mode
+        )
+
+        saved_results = (
+            saved_payload.get(
+                "results",
+                []
+            )
+            or []
+        )
+
+        saved_by_symbol = {}
+
+        for saved in saved_results:
+            if not isinstance(
+                saved,
+                dict,
+            ):
+                continue
+
+            saved_symbol = normalize_symbol(
+                saved.get(
+                    "symbol"
+                )
+                or saved.get(
+                    "fyers_symbol"
+                )
+            )
+
+            if saved_symbol:
+                saved_by_symbol[
+                    saved_symbol
+                ] = saved
+
+        stocks = []
+
+        for rank_number, stock in enumerate(
+            ranked,
+            start=1,
+        ):
+            item = serialize_value(
+                stock
+            )
+
+            if not isinstance(
+                item,
+                dict,
+            ):
+                continue
+
+            clean_symbol = normalize_symbol(
+                item.get(
+                    "symbol"
+                )
+                or item.get(
+                    "fyers_symbol"
+                )
+            )
+
+            saved = saved_by_symbol.get(
+                clean_symbol,
+                {},
+            )
+
+            signal = str(
+                saved.get(
+                    "signal",
+                    ""
+                )
+            ).strip().upper()
+
+            stocks.append(
+                {
+                    **item,
+                    "rank": rank_number,
+                    "symbol": clean_symbol,
+                    "sector": (
+                        item.get("sector")
+                        or item.get(
+                            "sector_name"
+                        )
+                        or sector_query
+                    ),
+                    "company_name": (
+                        item.get(
+                            "company_name"
+                        )
+                        or item.get(
+                            "stock_name"
+                        )
+                        or item.get(
+                            "name"
+                        )
+                        or clean_symbol
+                    ),
+                    "score": (
+                        item.get("score")
+                        or item.get(
+                            "stock_rank_score"
+                        )
+                        or item.get(
+                            "rank_score"
+                        )
+                        or item.get(
+                            "technical_score"
+                        )
+                        or 0
+                    ),
+                    "signal": (
+                        signal
+                        if signal
+                        == "STRONG BUY"
+                        else "RANKED"
+                    ),
+                    "technical_score": (
+                        saved.get(
+                            "technical_score"
+                        )
+                        or item.get(
+                            "technical_score"
+                        )
+                        or 0
+                    ),
+                    "current_price": (
+                        saved.get(
+                            "current_price"
+                        )
+                        or item.get(
+                            "current_price"
+                        )
+                        or item.get(
+                            "ltp"
+                        )
+                        or 0
+                    ),
+                }
+            )
+
+        return jsonify(
+            {
+                "success": True,
+                "sector": sector_query,
+                "mode": mode,
+                "count": len(
+                    stocks
+                ),
+                "stocks": stocks,
+                "results": stocks,
+                "timestamp": now_iso(),
+            }
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Sector stocks API failed | sector=%s",
+            sector_query,
+        )
+
+        if is_auth_error(exc):
+            stop_live_market(
+                clear_market_data=True
+            )
+            remove_access_token()
+
+            return api_error(
+                "FYERS session invalid/expired. Login again.",
+                401,
+                "invalid_fyers_session",
+            )
+
+        return api_error(
+            str(exc),
+            500,
+            "sector_stocks_failed",
+            exc,
+        )
+
+
+# ============================================================
 # STOCK / SEARCH / PROFILE APIs
 # ============================================================
 
