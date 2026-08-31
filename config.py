@@ -26,6 +26,9 @@ class Config:
     APP_VERSION: str = "5.0.0"
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-secret-key")
 
+    APP_ENV: str = os.getenv("APP_ENV", "production")
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
+
     DEBUG: bool = os.getenv("DEBUG", "false").strip().lower() in {
         "1", "true", "yes", "on"
     }
